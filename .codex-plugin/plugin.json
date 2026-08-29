@@ -1,0 +1,23 @@
+{
+  "name": "echo",
+  "version": "0.1.0+codex.20260829165653",
+  "description": "Echo transcribes meetings with local GigaAM or Whisper and FluidAudio Core ML diarization",
+  "author": {
+    "name": "Vlad Kalashnikov"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Echo",
+    "shortDescription": "Local Russian-first meeting transcription.",
+    "longDescription": "Echo transcribes recordings with GigaAM or Whisper, word timestamps, local diarization through FluidAudio Core ML, and resumable processing.",
+    "developerName": "Vlad Kalashnikov",
+    "category": "Productivity",
+    "capabilities": [],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "Use $echo:echo to transcribe this recording locally with speaker labels."
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+import json
+import os
+from pathlib import Path
+
+PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+SKILL_ROOT = PLUGIN_ROOT / "skills" / "echo"
+
+
+def test_plugin_has_required_top_level_artifacts() -> None:
+    required = {
+        ".codex-plugin",
+        ".gitignore",
+        "LICENSE",
+        "NOTICE.md",
+        "README.md",
+        "assets",
+        "skills",
+        "pyproject.toml",
+        "scripts",
+        "tests",
+        "uv.lock",
+    }
+    assert required <= {path.name for path in PLUGIN_ROOT.iterdir()}
+
+
+def test_plugin_contains_discoverable_skill() -> None:
+    assert (SKILL_ROOT / "SKILL.md").is_file()
+    assert (SKILL_ROOT / "agents" / "openai.yaml").is_file()
+    assert (PLUGIN_ROOT / "assets" / "icon.png").is_file()
+
+
+def test_manifest_uses_canonical_name() -> None:
+    manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+    assert manifest["name"] == PLUGIN_ROOT.name == "echo"
+    assert manifest["skills"] == "./skills/"
+    assert "apps" not in manifest and "mcpServers" not in manifest and "hooks" not in manifest
+
+
+def test_plugin_local_venv_is_ignored() -> None:
+    assert "/.venv/" in (PLUGIN_ROOT / ".gitignore").read_text().splitlines()
+
+
+def test_launcher_imports_only_stdlib_before_bootstrap() -> None:
+    launcher = PLUGIN_ROOT / "scripts" / "transcribe_audio.py"
+    source = launcher.read_text()
+    forbidden = (
+        "openai",
+        "dotenv",
+        "pyannote",
+        "torch",
+        "gigaam",
+        "faster_whisper",
+        "mlx_whisper",
+    )
+    assert all(name not in source for name in forbidden)
+    assert os.access(launcher, os.X_OK)
+
+
+def test_configured_pythonpath_imports_the_runtime_package() -> None:
+    import audio_transcriber
+
+    assert audio_transcriber.__name__ == "audio_transcriber"

@@ -1,0 +1,10 @@
+{
+  "name": "meeting-transcriber",
+  "version": "0.1.0",
+  "description": "Transcribe meetings with local GigaAM or Whisper and speaker diarization",
+  "author": {
+    "name": "Vlad Kalashnikov"
+  },
+  "license": "MIT",
+  "keywords": ["audio", "transcription", "asr", "diarization", "speaker-labels"]
+}

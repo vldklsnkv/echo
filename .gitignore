@@ -1,0 +1,25 @@
+/.venv/
+/.env
+/.pytest_cache/
+/.coverage
+/.ruff_cache/
+/swift/.build/
+/swift/vendor/
+__pycache__/
+.DS_Store
+
+# User recordings and generated transcripts stay local.
+*.aac
+*.flac
+*.m4a
+*.mp3
+*.ogg
+*.wav
+*.transcript.json
+*.transcript.txt
+*.transcript.srt
+*.transcript.vtt
+/output/
+/outputs/
+/recordings/
+/transcripts/

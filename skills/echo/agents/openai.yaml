@@ -1,0 +1,4 @@
+interface:
+  display_name: "Echo"
+  short_description: "Local Russian-first meeting transcription"
+  default_prompt: "Use $echo to transcribe this recording locally with speaker labels."
