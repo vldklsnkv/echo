@@ -94,7 +94,7 @@ jobs:
           if ! uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py \
             "$ECHO_WORK/$ECHO_ASSET" --mode local "${language_args[@]}" \
             --output-dir "$ECHO_WORK/output" --resume --srt --vtt \
-            >"$ECHO_WORK/pipeline.log" 2>&1; then
+            2>&1 | python3 scripts/cloud_progress.py "$ECHO_WORK/pipeline.log"; then
             echo 'Echo failed. See the private diagnostics artifact; no successful transcript published.' >&2
             exit 1
           fi
