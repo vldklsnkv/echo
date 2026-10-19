@@ -1,7 +1,7 @@
 {
   "name": "echo",
-  "version": "0.1.0+codex.20260829165653",
-  "description": "Echo transcribes meetings with local GigaAM or Whisper and FluidAudio Core ML diarization",
+  "version": "0.2.0+codex.20261019",
+  "description": "Echo transcribes meetings with GigaAM or Whisper and FluidAudio diarization on private GitHub Actions",
   "author": {
     "name": "Vlad Kalashnikov"
   },
@@ -9,15 +9,15 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Echo",
-    "shortDescription": "Local Russian-first meeting transcription.",
-    "longDescription": "Echo transcribes recordings with GigaAM or Whisper, word timestamps, local diarization through FluidAudio Core ML, and resumable processing.",
+    "shortDescription": "Private cloud meeting transcription.",
+    "longDescription": "Echo transcribes recordings with GigaAM or Whisper, word timestamps and local diarization through FluidAudio Core ML on a private GitHub Actions runner.",
     "developerName": "Vlad Kalashnikov",
     "category": "Productivity",
     "capabilities": [],
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "defaultPrompt": [
-      "Use $echo:echo to transcribe this recording locally with speaker labels."
+      "Use $echo:echo to transcribe this recording in private Echo Cloud with speaker labels."
     ]
   }
 }

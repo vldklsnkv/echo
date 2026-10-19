@@ -26,7 +26,7 @@ def test_plugin_manifest_has_only_implemented_components_and_coherent_metadata()
     assert re.fullmatch(
         r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", manifest["version"]
     )
-    assert manifest["version"].partition("+")[0] == "0.1.0"
+    assert manifest["version"].partition("+")[0] == "0.2.0"
     assert manifest["author"]["name"].strip()
     assert manifest["skills"] == "./skills/"
     assert all(
@@ -41,12 +41,12 @@ def test_plugin_manifest_has_only_implemented_components_and_coherent_metadata()
     assert interface["displayName"] == "Echo"
     assert "GigaAM" in manifest["description"]
     assert interface["shortDescription"].rstrip(".") == (
-        "Local Russian-first meeting transcription"
+        "Private cloud meeting transcription"
     )
     assert "word timestamps" in interface["longDescription"]
     assert "local diarization" in interface["longDescription"]
     assert interface["defaultPrompt"] == [
-        "Use $echo:echo to transcribe this recording locally with speaker labels."
+        "Use $echo:echo to transcribe this recording in private Echo Cloud with speaker labels."
     ]
     assert interface["capabilities"] == []
     assert interface["composerIcon"] == "./assets/icon.png"
@@ -65,7 +65,7 @@ def test_embedded_metadata_is_quoted_and_matches_the_plugin_interface() -> None:
     assert metadata["short_description"] == manifest["interface"]["shortDescription"].rstrip(".")
     assert 25 <= len(metadata["short_description"]) <= 64
     assert "$echo" in metadata["default_prompt"]
-    assert "locally with speaker labels" in metadata["default_prompt"]
+    assert "private Echo Cloud with speaker labels" in metadata["default_prompt"]
 
 
 def test_fork_attribution_is_preserved() -> None:

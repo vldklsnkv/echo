@@ -128,8 +128,26 @@ def collect(run_id: str, output: Path, journal: dict[str, Any], journal_path: Pa
         journal["files"] = {item.name: digest(item) for item in files}
         journal["quality_warnings"] = [warning.to_dict() for warning in document.quality.warnings]
         save_journal(journal_path, journal)
-    # Remove input only after all four files are saved and verified locally.
+    # Cloud cleanup waits for an independently verified Spaces delivery.
+
+
+def confirm_delivery(
+    journal: dict[str, Any], journal_path: Path, output: Path, page_url: str
+) -> None:
+    if not re.fullmatch(r"https://chatgpt\.com/space/page_[a-f0-9]{32}", page_url):
+        raise RuntimeError("Expected a canonical Context Page URL after verified publication.")
+    if not journal.get("page_url") and not completed_outputs(journal, output):
+        raise RuntimeError(
+            "Local staging files must still match before confirming Spaces delivery."
+        )
+    for name, checksum in journal["files"].items():
+        path = output / name
+        if path.exists() and digest(path) != checksum:
+            raise RuntimeError("Refusing to remove a changed staging file.")
+    journal["page_url"] = page_url
+    save_journal(journal_path, journal)
     cleanup_input(journal, journal_path)
+    run_id = journal["run_id"]
     artifacts = json.loads(gh("api", f"repos/{REPOSITORY}/actions/runs/{run_id}/artifacts"))
     for artifact in artifacts.get("artifacts", []):
         if artifact["name"] == f"echo-transcript-{run_id}":
@@ -139,6 +157,9 @@ def collect(run_id: str, output: Path, journal: dict[str, Any], journal_path: Pa
                 "DELETE",
                 f"repos/{REPOSITORY}/actions/artifacts/{artifact['id']}",
             )
+    for name in journal["files"]:
+        (output / name).unlink(missing_ok=True)
+    journal["delivered"] = True
     save_journal(journal_path, journal)
 
 
@@ -156,6 +177,8 @@ def main() -> int:
     parser.add_argument("--ref", default="main")
     parser.add_argument("--allow-cloud-upload", action="store_true")
     parser.add_argument("--no-wait", action="store_true")
+    parser.add_argument("--confirm-delivery", metavar="CONTEXT_PAGE_URL")
+    parser.add_argument("--run-id", help="Recover a verified existing dispatch for this request")
     args = parser.parse_args()
     from audio_transcriber.models import SpeakerCount
 
@@ -217,10 +240,39 @@ def run_request(
         raise RuntimeError("Cloud journal does not match the recording.")
     if journal.get("release_tag") != f"input-{key}":
         raise RuntimeError("Cloud journal contains an unexpected release tag.")
+    if journal.get("delivered"):
+        print(journal["page_url"])
+        return 0
+    if journal.get("page_url"):
+        confirm_delivery(journal, journal_path, output, journal["page_url"])
+        print(journal["page_url"])
+        return 0
+    if args.run_id:
+        if not re.fullmatch(r"[0-9]+", args.run_id):
+            raise RuntimeError("Invalid recovery run ID.")
+        recovery = json.loads(
+            gh(
+                "run",
+                "view",
+                args.run_id,
+                "--repo",
+                REPOSITORY,
+                "--json",
+                "displayTitle,headBranch",
+            )
+        )
+        if recovery["displayTitle"] != f"echo-{key}" or recovery["headBranch"] != args.ref:
+            raise RuntimeError("Recovery run does not match this recording and settings.")
+        journal["run_id"] = args.run_id
+        save_journal(journal_path, journal)
     if completed_outputs(journal, output):
-        if not journal.get("input_deleted"):
-            cleanup_input(journal, journal_path)
-        print("Verified existing cloud transcripts; no new upload or inference.")
+        if args.confirm_delivery or journal.get("page_url"):
+            confirm_delivery(
+                journal, journal_path, output, args.confirm_delivery or journal["page_url"]
+            )
+            print(journal["page_url"])
+        else:
+            print("Verified staging files ready for Spaces; no new upload or inference.")
         return 0
     if not journal.get("run_id"):
         # Upload an immutable snapshot; the original is never renamed or modified.
@@ -332,7 +384,7 @@ def run_request(
         )
         if run["status"] == "completed":
             collect(run_id, output, journal, journal_path)
-            print(f"Verified cloud transcripts saved to {output}")
+            print(f"Verified temporary files ready for publication in Spaces: {output}")
             return 0
         print("Cloud job is still running.", flush=True)
         time.sleep(30)

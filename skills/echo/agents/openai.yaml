@@ -1,4 +1,4 @@
 interface:
   display_name: "Echo"
-  short_description: "Local Russian-first meeting transcription"
-  default_prompt: "Use $echo to transcribe this recording locally with speaker labels."
+  short_description: "Private cloud meeting transcription"
+  default_prompt: "Use $echo to transcribe this recording in private Echo Cloud with speaker labels."

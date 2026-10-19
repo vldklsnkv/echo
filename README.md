@@ -1,6 +1,8 @@
 # Echo
 
-Echo is a local-first Codex plugin for transcribing meetings, interviews, calls, voice memos, and other long recordings. It combines language-aware speech recognition with local speaker diarization and produces structured, resumable output with word timestamps.
+Echo is a Codex plugin for transcribing meetings, interviews, calls and voice memos on a private GitHub Actions runner. GigaAM/Whisper and FluidAudio run on the runner; the user's computer only transfers the recording and retrieves validated output. Explicit computer-local inference remains available.
+
+The configured execution repository is `vldklsnkv/echo-cloud`, separate from this public source repository. Upload consent and repository privacy are checked before use. See [cloud execution](docs/cloud-pilot.md) for boundaries and recovery.
 
 Russian transcription uses GigaAM v3 by default. Explicit English uses Distil-Whisper, while mixed speech and automatic language detection use Whisper Large v3 Turbo. Speaker diarization runs locally through FluidAudio's Core ML pipeline.
 
@@ -32,12 +34,16 @@ The first local run downloads speech models and builds the checksum-pinned diari
 In Codex, invoke the plugin with a recording attached or available on disk:
 
 ```text
-Use $echo:echo to transcribe this recording locally with speaker labels.
+Use $echo:echo to transcribe this recording in private Echo Cloud with speaker labels.
 ```
 
 The command-line launcher is also available from the repository:
 
 ```sh
+python3 scripts/transcribe_cloud.py /absolute/path/meeting.m4a \
+  --output-dir /private/tmp/echo-staging-unique --language ru --allow-cloud-upload
+
+# Explicit inference on this computer:
 ./scripts/transcribe_audio.py --help
 
 ./scripts/transcribe_audio.py /absolute/path/meeting.m4a \

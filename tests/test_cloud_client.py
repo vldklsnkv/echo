@@ -103,3 +103,50 @@ def test_changed_local_result_is_not_treated_as_verified(tmp_path: Path) -> None
     result.write_text("modified")
     assert not cloud.completed_outputs(journal, tmp_path)
     assert not cloud.completed_outputs({"files": {"../outside": "abc"}}, tmp_path)
+
+
+def test_delivery_cleanup_preserves_other_files_and_records_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    transcript = tmp_path / "recording.transcript.txt"
+    transcript.write_text("spoken text")
+    unrelated = tmp_path / "keep.txt"
+    unrelated.write_text("keep")
+    journal = {
+        "release_tag": "input-test",
+        "run_id": "123",
+        "files": {transcript.name: cloud.digest(transcript)},
+    }
+
+    def fake_gh(*args: str) -> str:
+        return "[]" if args[:2] == ("release", "list") else '{"artifacts": []}'
+
+    monkeypatch.setattr(cloud, "gh", fake_gh)
+    cloud.confirm_delivery(
+        journal, tmp_path / "journal.json", tmp_path, "https://chatgpt.com/space/page_" + "a" * 32
+    )
+    assert journal["delivered"] is True
+    assert not transcript.exists()
+    assert unrelated.read_text() == "keep"
+
+
+def test_delivery_cleanup_refuses_modified_staging_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    transcript = tmp_path / "recording.transcript.txt"
+    transcript.write_text("original")
+    journal = {"files": {transcript.name: cloud.digest(transcript)}}
+    transcript.write_text("user edited")
+
+    def refuse(*args: str) -> str:
+        pytest.fail("Cloud cleanup must not begin")
+
+    monkeypatch.setattr(cloud, "gh", refuse)
+    with pytest.raises(RuntimeError, match="still match"):
+        cloud.confirm_delivery(
+            journal,
+            tmp_path / "journal.json",
+            tmp_path,
+            "https://chatgpt.com/space/page_" + "a" * 32,
+        )
+    assert transcript.read_text() == "user edited"
