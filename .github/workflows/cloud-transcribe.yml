@@ -113,22 +113,20 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          language_args=()
-          if [[ "$ECHO_LANGUAGE" != auto ]]; then language_args=(--language "$ECHO_LANGUAGE"); fi
-          speaker_args=()
+          command=(uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py
+            "$ECHO_WORK/$ECHO_ASSET" --mode local --local-engine "$ECHO_ENGINE"
+            --output-dir "$ECHO_WORK/output" --resume --srt --vtt)
+          if [[ "$ECHO_LANGUAGE" != auto ]]; then command+=(--language "$ECHO_LANGUAGE"); fi
           case "$ECHO_SPEAKER_POLICY" in
             auto) ;;
-            -*) speaker_args=(--max-speakers "${ECHO_SPEAKER_POLICY#-}") ;;
-            *-) speaker_args=(--min-speakers "${ECHO_SPEAKER_POLICY%-}") ;;
-            *-*) speaker_args=(--min-speakers "${ECHO_SPEAKER_POLICY%-*}" --max-speakers "${ECHO_SPEAKER_POLICY#*-}") ;;
-            *) speaker_args=(--speakers "$ECHO_SPEAKER_POLICY") ;;
+            -*) command+=(--max-speakers "${ECHO_SPEAKER_POLICY#-}") ;;
+            *-) command+=(--min-speakers "${ECHO_SPEAKER_POLICY%-}") ;;
+            *-*) command+=(--min-speakers "${ECHO_SPEAKER_POLICY%-*}" --max-speakers "${ECHO_SPEAKER_POLICY#*-}") ;;
+            *) command+=(--speakers "$ECHO_SPEAKER_POLICY") ;;
           esac
-          if [[ -n "$ECHO_SPEAKER_NAMES" ]]; then speaker_args+=(--speaker-names "$ECHO_SPEAKER_NAMES"); fi
+          if [[ -n "$ECHO_SPEAKER_NAMES" ]]; then command+=(--speaker-names "$ECHO_SPEAKER_NAMES"); fi
           # Keep model and pipeline diagnostics out of Actions logs.
-          if ! uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py \
-            "$ECHO_WORK/$ECHO_ASSET" --mode local --local-engine "$ECHO_ENGINE" "${language_args[@]}" "${speaker_args[@]}" \
-            --output-dir "$ECHO_WORK/output" --resume --srt --vtt \
-            2>&1 | python3 scripts/cloud_progress.py "$ECHO_WORK/pipeline.log"; then
+          if ! "${command[@]}" 2>&1 | python3 scripts/cloud_progress.py "$ECHO_WORK/pipeline.log"; then
             echo 'Echo failed. See the private diagnostics artifact; no successful transcript published.' >&2
             exit 1
           fi
