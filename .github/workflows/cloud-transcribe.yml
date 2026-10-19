@@ -36,13 +36,15 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 120
     env:
-      ECHO_WORK: ${{ runner.temp }}/echo-pilot-${{ github.run_id }}-${{ github.run_attempt }}
       ECHO_ASSET: ${{ inputs.asset_name }}
       ECHO_RELEASE: ${{ inputs.release_tag }}
       ECHO_SHA256: ${{ inputs.sha256 }}
       ECHO_LANGUAGE: ${{ inputs.language }}
       UV_NO_CACHE: '1'
     steps:
+      - name: Set temporary work directory
+        shell: bash
+        run: echo "ECHO_WORK=$RUNNER_TEMP/echo-pilot-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
