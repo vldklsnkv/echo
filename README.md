@@ -8,6 +8,7 @@ Russian transcription uses GigaAM v3 by default. Explicit English uses Distil-Wh
 
 ## Highlights
 
+- Editable call pages in Spaces Context: detailed summary first, then the complete transcript by topic, with participant headings above the spoken text.
 - Local transcription for Russian, English, and mixed-language recordings.
 - Automatic, ranged, or exact speaker-count policies.
 - Word-level timestamps and aligned speaker labels.

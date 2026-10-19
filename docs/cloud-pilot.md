@@ -12,10 +12,12 @@ to Git, and the original recording is preserved.
    uploads a private snapshot and dispatches `cloud-transcribe.yml`.
 2. GigaAM or Whisper and FluidAudio run on a fresh macOS ARM runner. The computer
    only transfers files and validates results. No ASR API is used in this path.
-3. The client retrieves temporary pipeline files. The chat agent writes only
-   editable transcript text in Spaces Context under Calls. No file attachments,
-   technical reports are added to the Page. A concise, grounded call summary precedes
-   the complete transcript, grouped by topic with readable participant labels.
+3. The client retrieves temporary pipeline files. The chat agent writes an editable summary and
+   complete transcript in Spaces Context under Calls. No file attachments or
+   technical reports are added to the Page. A detailed, grounded call summary appears at the top,
+   followed by the complete transcript grouped by topic. For substantive hour-long
+   calls, the summary is typically 400-600 words with descriptive subsections;
+   shorter calls scale to their content. Participant headings sit above each turn.
 4. After complete Page readback, the agent invokes the client again with
    `--confirm-delivery` and the canonical Page URL. This removes temporary cloud
    input, result artifact and local staging transcripts. The recovery journal
