@@ -21,6 +21,12 @@ on:
         default: ru
         type: choice
         options: [ru, en, auto]
+      local_engine:
+        description: Speech recognition engine on the runner
+        required: true
+        default: auto
+        type: choice
+        options: [auto, gigaam, whisper]
 
 permissions:
   contents: read
@@ -40,6 +46,7 @@ jobs:
       ECHO_RELEASE: ${{ inputs.release_tag }}
       ECHO_SHA256: ${{ inputs.sha256 }}
       ECHO_LANGUAGE: ${{ inputs.language }}
+      ECHO_ENGINE: ${{ inputs.local_engine || 'auto' }}
       UV_NO_CACHE: '1'
     steps:
       - name: Set temporary work directory
@@ -63,6 +70,7 @@ jobs:
           assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,100}', os.environ['ECHO_RELEASE']), 'Invalid release tag'
           assert re.fullmatch(r'[a-fA-F0-9]{64}', os.environ['ECHO_SHA256']), 'Invalid SHA-256'
           assert os.environ['ECHO_LANGUAGE'] in {'ru', 'en', 'auto'}, 'Invalid language'
+          assert os.environ['ECHO_ENGINE'] in {'auto', 'gigaam', 'whisper'}, 'Invalid engine'
           pathlib.Path(os.environ['ECHO_WORK']).mkdir(mode=0o700)
           PY
           test "$(uname -m)" = arm64
@@ -92,7 +100,7 @@ jobs:
           if [[ "$ECHO_LANGUAGE" != auto ]]; then language_args=(--language "$ECHO_LANGUAGE"); fi
           # Keep model and pipeline diagnostics out of Actions logs.
           if ! uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py \
-            "$ECHO_WORK/$ECHO_ASSET" --mode local "${language_args[@]}" \
+            "$ECHO_WORK/$ECHO_ASSET" --mode local --local-engine "$ECHO_ENGINE" "${language_args[@]}" \
             --output-dir "$ECHO_WORK/output" --resume --srt --vtt \
             2>&1 | python3 scripts/cloud_progress.py "$ECHO_WORK/pipeline.log"; then
             echo 'Echo failed. See the private diagnostics artifact; no successful transcript published.' >&2
