@@ -19,9 +19,7 @@ def test_progress_filter_retains_private_log_without_printing_speech(tmp_path: P
     result = subprocess.run(
         [sys.executable, str(script), str(log)], input=payload, capture_output=True, check=True
     )
-    assert result.stdout == (
-        b"asr | 1/100 | backend=gigaam-cpu\nasr | 3/100 | checkpoint=reused\n"
-    )
+    assert result.stdout == (b"asr | 1/100 | backend=gigaam-cpu\nasr | 3/100 | checkpoint=reused\n")
     assert log.read_bytes() == payload
     assert stat.S_IMODE(log.stat().st_mode) == 0o600
 

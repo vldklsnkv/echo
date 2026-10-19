@@ -1,4 +1,5 @@
 name: Echo cloud pilot
+run-name: echo-${{ inputs.request_id || github.run_id }}
 
 on:
   workflow_dispatch:
@@ -27,12 +28,25 @@ on:
         default: auto
         type: choice
         options: [auto, gigaam, whisper]
+      request_id:
+        description: Optional content-addressed client request ID
+        required: false
+        type: string
+      speaker_policy:
+        description: auto, exact N, min N-, max -N, or range N-M
+        required: false
+        default: auto
+        type: string
+      speaker_names:
+        description: Optional raw-label mapping SPEAKER_00=Name,SPEAKER_01=Name
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: echo-cloud-pilot
+  group: echo-${{ inputs.request_id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -47,6 +61,8 @@ jobs:
       ECHO_SHA256: ${{ inputs.sha256 }}
       ECHO_LANGUAGE: ${{ inputs.language }}
       ECHO_ENGINE: ${{ inputs.local_engine || 'auto' }}
+      ECHO_SPEAKER_POLICY: ${{ inputs.speaker_policy || 'auto' }}
+      ECHO_SPEAKER_NAMES: ${{ inputs.speaker_names }}
       UV_NO_CACHE: '1'
     steps:
       - name: Set temporary work directory
@@ -71,6 +87,7 @@ jobs:
           assert re.fullmatch(r'[a-fA-F0-9]{64}', os.environ['ECHO_SHA256']), 'Invalid SHA-256'
           assert os.environ['ECHO_LANGUAGE'] in {'ru', 'en', 'auto'}, 'Invalid language'
           assert os.environ['ECHO_ENGINE'] in {'auto', 'gigaam', 'whisper'}, 'Invalid engine'
+          assert re.fullmatch(r'auto|[1-9][0-9]*|[1-9][0-9]*-|-[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*', os.environ['ECHO_SPEAKER_POLICY']), 'Invalid speaker policy'
           pathlib.Path(os.environ['ECHO_WORK']).mkdir(mode=0o700)
           PY
           test "$(uname -m)" = arm64
@@ -98,9 +115,18 @@ jobs:
           umask 077
           language_args=()
           if [[ "$ECHO_LANGUAGE" != auto ]]; then language_args=(--language "$ECHO_LANGUAGE"); fi
+          speaker_args=()
+          case "$ECHO_SPEAKER_POLICY" in
+            auto) ;;
+            -*) speaker_args=(--max-speakers "${ECHO_SPEAKER_POLICY#-}") ;;
+            *-) speaker_args=(--min-speakers "${ECHO_SPEAKER_POLICY%-}") ;;
+            *-*) speaker_args=(--min-speakers "${ECHO_SPEAKER_POLICY%-*}" --max-speakers "${ECHO_SPEAKER_POLICY#*-}") ;;
+            *) speaker_args=(--speakers "$ECHO_SPEAKER_POLICY") ;;
+          esac
+          if [[ -n "$ECHO_SPEAKER_NAMES" ]]; then speaker_args+=(--speaker-names "$ECHO_SPEAKER_NAMES"); fi
           # Keep model and pipeline diagnostics out of Actions logs.
           if ! uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py \
-            "$ECHO_WORK/$ECHO_ASSET" --mode local --local-engine "$ECHO_ENGINE" "${language_args[@]}" \
+            "$ECHO_WORK/$ECHO_ASSET" --mode local --local-engine "$ECHO_ENGINE" "${language_args[@]}" "${speaker_args[@]}" \
             --output-dir "$ECHO_WORK/output" --resume --srt --vtt \
             2>&1 | python3 scripts/cloud_progress.py "$ECHO_WORK/pipeline.log"; then
             echo 'Echo failed. See the private diagnostics artifact; no successful transcript published.' >&2

@@ -7,9 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-_PROGRESS = re.compile(
-    rb"asr \| [0-9]+/[0-9]+ \| (?:backend=[a-zA-Z0-9_-]+|checkpoint=reused)"
-)
+_PROGRESS = re.compile(rb"asr \| [0-9]+/[0-9]+ \| (?:backend=[a-zA-Z0-9_-]+|checkpoint=reused)")
 
 
 def main() -> None:
