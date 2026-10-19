@@ -1,0 +1,130 @@
+name: Echo cloud pilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Private release containing the recording
+        required: true
+        type: string
+      asset_name:
+        description: Recording asset filename (ASCII letters, digits, dots, underscores, hyphens)
+        required: true
+        type: string
+      sha256:
+        description: Expected SHA-256 of the recording
+        required: true
+        type: string
+      language:
+        description: Recording language
+        required: true
+        default: ru
+        type: choice
+        options: [ru, en, auto]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: echo-cloud-pilot
+  cancel-in-progress: false
+
+jobs:
+  transcribe:
+    # Never expose recordings or transcripts through the public plugin repository.
+    if: github.event.repository.private == true
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      ECHO_WORK: ${{ runner.temp }}/echo-pilot-${{ github.run_id }}-${{ github.run_attempt }}
+      ECHO_ASSET: ${{ inputs.asset_name }}
+      ECHO_RELEASE: ${{ inputs.release_tag }}
+      ECHO_SHA256: ${{ inputs.sha256 }}
+      ECHO_LANGUAGE: ${{ inputs.language }}
+      UV_NO_CACHE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: false
+      - name: Validate inputs and prepare private work directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import os, pathlib, re
+          assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,180}', os.environ['ECHO_ASSET']), 'Invalid asset name'
+          assert pathlib.Path(os.environ['ECHO_ASSET']).suffix.lower() in {'.wav', '.m4a', '.mp3', '.aac', '.flac', '.ogg'}, 'Unsupported audio extension'
+          assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,100}', os.environ['ECHO_RELEASE']), 'Invalid release tag'
+          assert re.fullmatch(r'[a-fA-F0-9]{64}', os.environ['ECHO_SHA256']), 'Invalid SHA-256'
+          assert os.environ['ECHO_LANGUAGE'] in {'ru', 'en', 'auto'}, 'Invalid language'
+          pathlib.Path(os.environ['ECHO_WORK']).mkdir(mode=0o700)
+          PY
+          test "$(uname -m)" = arm64
+          command -v ffmpeg >/dev/null || brew install ffmpeg
+          swift --version
+      - name: Download private recording and verify identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          gh release download "$ECHO_RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$ECHO_ASSET" --dir "$ECHO_WORK"
+          python3 - <<'PY'
+          import hashlib, os, pathlib
+          source = pathlib.Path(os.environ['ECHO_WORK']) / os.environ['ECHO_ASSET']
+          with source.open('rb') as stream:
+              actual = hashlib.file_digest(stream, 'sha256').hexdigest()
+          assert actual == os.environ['ECHO_SHA256'].lower(), 'Recording checksum mismatch'
+          PY
+      - name: Recognize speech and speakers on the runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          language_args=()
+          if [[ "$ECHO_LANGUAGE" != auto ]]; then language_args=(--language "$ECHO_LANGUAGE"); fi
+          # Keep model and pipeline diagnostics out of Actions logs.
+          if ! uv run --python 3.13 --frozen --no-dev --all-extras python scripts/transcribe_audio.py \
+            "$ECHO_WORK/$ECHO_ASSET" --mode local "${language_args[@]}" \
+            --output-dir "$ECHO_WORK/output" --resume --srt --vtt \
+            >"$ECHO_WORK/pipeline.log" 2>&1; then
+            echo 'Echo failed. See the private diagnostics artifact; no successful transcript published.' >&2
+            exit 1
+          fi
+      - name: Return private failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: echo-diagnostics-${{ github.run_id }}
+          path: ${{ env.ECHO_WORK }}/pipeline.log
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Return validated transcripts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: echo-transcript-${{ github.run_id }}
+          path: |
+            ${{ env.ECHO_WORK }}/output/*.transcript.json
+            ${{ env.ECHO_WORK }}/output/*.transcript.txt
+            ${{ env.ECHO_WORK }}/output/*.transcript.srt
+            ${{ env.ECHO_WORK }}/output/*.transcript.vtt
+          if-no-files-found: error
+          retention-days: 1
+      - name: Remove temporary recording and diagnostics
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          target = pathlib.Path(os.environ['ECHO_WORK'])
+          parent = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          if target.parent.resolve() != parent or not target.name.startswith('echo-pilot-'):
+              raise SystemExit('Unsafe cleanup path')
+          if target.exists():
+              shutil.rmtree(target)
+          PY
