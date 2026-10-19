@@ -14,7 +14,8 @@ to Git, and the original recording is preserved.
    only transfers files and validates results. No ASR API is used in this path.
 3. The client retrieves temporary pipeline files. The chat agent writes only
    editable transcript text in Spaces Context under Calls. No file attachments,
-   summaries or technical reports are added to the Page.
+   technical reports are added to the Page. A concise, grounded call summary precedes
+   the complete transcript, grouped by topic with readable participant labels.
 4. After complete Page readback, the agent invokes the client again with
    `--confirm-delivery` and the canonical Page URL. This removes temporary cloud
    input, result artifact and local staging transcripts. The recovery journal

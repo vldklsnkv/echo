@@ -1,6 +1,6 @@
 ---
 name: echo
-description: Transcribe meetings, interviews, calls and voice memos as timestamped speaker-labelled text in Spaces Context using GigaAM or Whisper with diarization on private GitHub Actions. Supports explicit local processing and optional OpenAI ASR.
+description: Transcribe meetings, interviews, calls and voice memos as readable transcripts with a grounded call summary in Spaces Context using GigaAM or Whisper with diarization on private GitHub Actions. Supports explicit local processing and optional OpenAI ASR.
 ---
 
 # Echo
@@ -9,7 +9,7 @@ description: Transcribe meetings, interviews, calls and voice memos as timestamp
 
 - Resolve the input and output paths without copying audio into the repository.
 - Cloud execution uploads audio to the private `vldklsnkv/echo-cloud` repository. Respect the user's established consent for this destination; obtain explicit consent if it has not been given. The client checks repository privacy before uploading. Do not upload to the public plugin repository.
-- Keep the original recording intact. Final delivery is a plain text Page in Spaces Context under Calls. Do not add JSON, TXT, SRT, VTT attachments, technical reports or summaries. After Page readback confirms the full transcript, remove temporary cloud inputs, artifacts and local staging files. Report cleanup failures.
+- Keep the original recording intact. Final delivery is a plain text Page in Spaces Context under Calls. Do not add JSON, TXT, SRT, VTT attachments, technical reports. Include a concise, grounded call summary followed by the complete transcript. After Page readback confirms the full transcript, remove temporary cloud inputs, artifacts and local staging files. Report cleanup failures.
 - Never print dotenv values or commit audio, transcripts, runtime state, or model caches.
 - Treat raw diarization labels as labels, not identities. Apply `--speaker-names` only after diarization returns those raw labels.
 
@@ -39,11 +39,20 @@ python3 "$SKILL_DIR/../../scripts/transcribe_cloud.py" /absolute/path/meeting.m4
 
 The cloud client needs authenticated `gh` and Python 3.11+ (or `uv` to select Python); it does not download speech models. Use the same staging directory to resume waiting or collect a completed run. `--no-wait` dispatches and returns the private job URL. Files are checked by SHA-256 before reuse. A failed runner requires an inspected retry; completed ASR chunks are not recovered across fresh runners.
 
-Publish only editable transcript text in Context → Calls (`page_6ad58f7438cc8191b09b58dee8cb74c0`, Space `page_space_6065e91eac548191a30b6a826ee9eafb`) using the Pages write-page workflow. Read the destination and check for a duplicate before creating. Keep spoken text and speaker turns; do not infer identities or add a report. Read back the saved Page and verify every turn. Then rerun the client with the same arguments plus `--confirm-delivery CANONICAL_CONTEXT_PAGE_URL`: this removes the cloud input, temporary result artifact and local staging transcripts. The chat agent performs the Pages write; never put ChatGPT credentials on the runner. If publication fails, retain recovery material temporarily and report the gap; do not claim completion or silently save permanent local copies.
+Publish the editable call summary and complete transcript in Context → Calls (`page_6ad58f7438cc8191b09b58dee8cb74c0`, Space `page_space_6065e91eac548191a30b6a826ee9eafb`) using the Pages write-page workflow. Read the destination and check for a duplicate before creating. Follow the Page presentation rules below; do not infer identities or add a technical report. Read back the saved Page and verify every turn. Then rerun the client with the same arguments plus `--confirm-delivery CANONICAL_CONTEXT_PAGE_URL`: this removes the cloud input, temporary result artifact and local staging transcripts. The chat agent performs the Pages write; never put ChatGPT credentials on the runner. If publication fails, retain recovery material temporarily and report the gap; do not claim completion or silently save permanent local copies.
 
 Run the launcher from that resolved path. Use `--resume` after an interruption; it validates and reuses prior committed stages. Canonical JSON is authoritative; TXT, SRT, and VTT are derived only after the JSON validates.
 
 Generic recorder filenames (`Recording`, `Voice Memo`, `Запись`, including engine/fix suffixes) are replaced automatically with a short, local, transcript-derived output title. Keep `--output-dir` as the destination directory; do not create another generic `Recording*` subfolder around the outputs. Meaningful source filenames remain unchanged.
+
+## Page presentation
+
+- Write in the language of the call, unless the user requests another language. Start with a short, plain-language summary of the purpose, main discussion, and outcome. Include decisions and next steps only when explicitly supported; do not invent agreements, owners, deadlines, or success claims. Read the complete transcript before summarizing. Keep uncertainty visible when recognition is unclear. Omit the summary when the user explicitly asks for transcript only.
+- Follow with the complete transcript, grouped under a few descriptive topic headings at natural transitions. Keep every turn in chronological order; headings and the summary must not replace spoken content.
+- Use one compact paragraph per turn: `**Участник 1 · 06:21:** Всем привет.` Localize neutral participant labels for the call language. Keep the raw-label-to-number mapping stable for the whole call; use real names only from an explicit verified mapping. Show the start time as `MM:SS` (or `H:MM:SS` for long recordings), without end ranges or raw `SPEAKER_00` identifiers.
+- Capitalize the first alphabetic character of each turn, preserving acronyms and the rest of the spoken wording. Do not rewrite, deduplicate, silently repair recognition errors, or assign mixed voices to guessed people. Preserve uncertainty markers and meaningful punctuation. If a turn is unclear, keep its wording and summarize only what the source supports.
+- Use native editable headings, paragraphs, and short summary bullets. Keep model names, pipeline diagnostics, source paths, quality statistics, and export files out of the Page.
+- Read the saved Page back: compare all transcript turns with the validated source, allowing only the stated capitalization and presentation changes. Check ordering, stable participant labels, timestamps, and summary support before confirming delivery and removing temporary results.
 
 ## Stop conditions
 
