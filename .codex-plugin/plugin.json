@@ -1,6 +1,6 @@
 {
   "name": "echo",
-  "version": "0.2.0+codex.20261019.1",
+  "version": "0.2.0+codex.20261019.2",
   "description": "Echo transcribes meetings with GigaAM or Whisper and FluidAudio diarization on private GitHub Actions",
   "author": {
     "name": "Vlad Kalashnikov"
