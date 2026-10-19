@@ -1,4 +1,4 @@
-name: Echo cloud pilot
+name: Echo · File Transcription
 run-name: echo-${{ inputs.request_id || github.run_id }}
 
 on:
