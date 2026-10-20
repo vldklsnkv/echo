@@ -35,10 +35,11 @@ def test_missing_upload_consent_prevents_any_github_call(
         cloud.main()
 
 
+@pytest.mark.parametrize("filename", ["source with spaces.m4a", 'question? <release>|*.m4a'])
 def test_dispatch_resume_does_not_upload_or_dispatch_twice(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, filename: str
 ) -> None:
-    source = tmp_path / "source with spaces.m4a"
+    source = tmp_path / filename
     source.write_bytes(b"immutable audio fixture")
     output = tmp_path / "output"
     calls: list[tuple[str, ...]] = []
@@ -73,7 +74,9 @@ def test_dispatch_resume_does_not_upload_or_dispatch_twice(
         ["cloud", str(source), "--output-dir", str(output), "--allow-cloud-upload", "--no-wait"],
     )
     assert cloud.main() == 0
+    first_request_id = request_id
     assert cloud.main() == 0
+    assert request_id == first_request_id
     assert sum(call[:2] == ("release", "create") for call in calls) == 1
     assert sum(call[:2] == ("workflow", "run") for call in calls) == 1
     assert source.read_bytes() == b"immutable audio fixture"
