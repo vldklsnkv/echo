@@ -354,8 +354,11 @@ def descriptive_output_stem(input_path: Path, document: TranscriptDocument) -> s
     else:
         title = " ".join(words)
     title = unicodedata.normalize("NFC", title)
+    # GitHub upload-artifact rejects these characters even on a macOS runner.
     title = "".join(
-        " " if character in "/\\:" or unicodedata.category(character).startswith("C") else character
+        " "
+        if character in '/\\:<>"|?*' or unicodedata.category(character).startswith("C")
+        else character
         for character in title
     )
     title = re.sub(r"\s+", " ", title).strip(" .-_")

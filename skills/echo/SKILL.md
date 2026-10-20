@@ -1,6 +1,6 @@
 ---
 name: echo
-description: Transcribe meetings, interviews, calls and voice memos as readable transcripts with a grounded call summary in Spaces Context using GigaAM or Whisper with diarization on private GitHub Actions. Supports explicit local processing and optional OpenAI ASR.
+description: Transcribe meetings, interviews, calls and voice memos as readable transcripts with a grounded call summary in Spaces Context using GigaAM or Whisper with speaker diarization and word timestamps on private GitHub Actions. Supports explicit local processing and optional OpenAI ASR.
 ---
 
 # Echo

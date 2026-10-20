@@ -51,3 +51,5 @@ remain private until an inspected retry or explicit cleanup.
 The client supports language and engine selection, automatic/exact/ranged speaker
 counts and supplied display names. Raw labels do not identify people. Automated
 quality checks do not establish word-for-word accuracy.
+
+Transcript-derived output titles replace GitHub artifact-forbidden filename characters with spaces before publication. This changes only the output basename: original audio, transcript text, request/job identity and resume state remain intact.

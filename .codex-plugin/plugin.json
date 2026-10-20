@@ -1,6 +1,6 @@
 {
   "name": "echo",
-  "version": "0.2.0+codex.20261019.3",
+  "version": "0.2.0+codex.20261020.1",
   "description": "Echo transcribes meetings with GigaAM or Whisper and FluidAudio diarization on private GitHub Actions",
   "author": {
     "name": "Vlad Kalashnikov"
@@ -10,7 +10,7 @@
   "interface": {
     "displayName": "Echo",
     "shortDescription": "Private cloud meeting transcription.",
-    "longDescription": "Echo transcribes recordings on private GitHub Actions and saves readable, topic-organized transcripts with a detailed call summary at the top in Spaces Context.",
+    "longDescription": "Echo transcribes recordings on private GitHub Actions with word timestamps and local diarization on the runner, and saves readable, topic-organized transcripts with a detailed call summary at the top in Spaces Context.",
     "developerName": "Vlad Kalashnikov",
     "category": "Productivity",
     "capabilities": [],

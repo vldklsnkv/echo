@@ -308,3 +308,23 @@ def test_meaningful_source_name_is_preserved_and_title_is_sanitized() -> None:
         turns=(replace(document.turns[0], text="Так, план / релиза: в пятницу."),),
     )
     assert descriptive_output_stem(Path("Запись.m4a"), unsafe) == "план релиза в пятницу"
+
+
+@pytest.mark.parametrize("character", ["?", "*", "<", ">", '"', "|", ":", "/", "\\", "\x00", "\n"])
+def test_transcript_titles_are_safe_for_github_artifacts(character: str, tmp_path: Path) -> None:
+    document = _document()
+    document = replace(
+        document, turns=(replace(document.turns[0], text=f"План{character} релиза готов"),)
+    )
+    paths = default_output_paths(
+        Path("recording.m4a"), tmp_path, srt=True, vtt=True, document=document
+    )
+    for path in (paths.json, paths.txt, paths.srt, paths.vtt):
+        assert path is not None
+        assert path.name.startswith("План релиза готов.transcript.")
+        assert path.parent == tmp_path
+    assert document.turns[0].text == f"План{character} релиза готов"
+    assert (
+        default_output_paths(Path("recording.m4a"), tmp_path, srt=True, vtt=True, document=document)
+        == paths
+    )
