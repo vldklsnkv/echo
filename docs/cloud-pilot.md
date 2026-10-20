@@ -27,6 +27,12 @@ Pages authorization stays in the chat agent; never put ChatGPT credentials on
 Actions. If publication fails, report it and retain temporary recovery material.
 Do not silently switch to permanent local storage or computer inference.
 
+## Page delivery contract
+
+The chat agent must read the live Context root, Calls and selected target native Agent Instructions before each Page write. See the Page write gate in `skills/echo/SKILL.md`. Only a permitted real new call creates one child under the existing Calls parent; retries/edits resume the canonical Page by recording/request identity and prior receipt. Incomplete reads, diagnostic events and pipeline failures never create replacement destinations. Fresh guarded writes and full transcript readback precede final delivery confirmation and cleanup.
+
+The runner has no Pages credentials and cannot enforce parentage or verify that the agent read these instructions. A green run confirms processing/artifacts only. This source protocol does not prove adoption by an installed plugin or hosted task.
+
 ## Recovery and limits
 
 Use the same staging directory and arguments to resume waiting or collect a
